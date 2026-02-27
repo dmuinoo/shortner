@@ -16,6 +16,8 @@ Acortador de URLs desarrollado con **Python + FastAPI**, inspirado en el enfoque
 - Comprueba que el string no es ninguna palabra reservada antes de asignarlo
 
 -- ACTUALIZACION 2 [H4]
+- Se añade temporalidad a las URLs (activada, desactivada, expirada) 
+
 ---
 
 ## 🧱 Stack
