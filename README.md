@@ -1,5 +1,3 @@
----
-
 ````markdown
 # 🔗 Shortner — URL Shortener con FastAPI
 
