@@ -4,9 +4,10 @@ Acortador de URLs desarrollado con **Python + FastAPI**, inspirado en el enfoque
 
 ## ✅ Qué hace
 
-- Crear URLs cortas a partir de una URL objetivo
-- Redirigir desde `/{url_key}` a la URL original
-- Consultar información sin redirigir (`/peek/{key}`)
+- **Crear URLs cortas** a partir de una URL objetivo
+- **Redirigir** desde `/{url_key}` a la URL original
+- **Persistir** enlaces en una base de datos SQLite ('shortener.db').
+- Consultar información (enlaces creados) sin redirigir (`/peek/{key}`)
 - Administrar una URL (info y borrado) usando `secret_key`
 
 -- ACTUALIZACION 1 [H1 + H2 + H3]
