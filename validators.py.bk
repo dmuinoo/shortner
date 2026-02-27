@@ -1,0 +1,11 @@
+import re
+RESERVED = {"docs", "openapi.json", "admin", "peek", "url"}
+
+def validate_custom_key(key: str, alphabet: str, min_len: int = 3, max_len: int = 32):
+    if key in RESERVED:
+        raise HTTPException(400, "custom_key is reserved")
+    if not (min_len <= len(key) <= max_len):
+        raise HTTPException(400, "custom_key length invalid")
+    allowed = set(alphabet)
+    if any(ch not in allowed for ch in key):
+        raise HTTPException(400, "custom_key contains invalid characters")

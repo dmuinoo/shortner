@@ -1,22 +1,26 @@
-# short/keygen.py
-
 import secrets
-import string
-
 from sqlalchemy.orm import Session
 
+from config import get_settings
 import crud
 
+settings = get_settings()
 
 
+def create_random_key(length: int, alphabet: str) -> str:
+    return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
-def create_random_key(length: int = 5) -> str:
-	chars = string.ascii_uppercase + string.digits
-	return "".join(secrets.choice(chars) for _ in range(length))
+def create_url_key() -> str:
+    return create_random_key(settings.url_key_length, settings.url_key_alphabet)
 
-def create_unique_random_key(db: Session) -> str:
-	key = create_random_key()
-	while crud.get_db_url_by_key(db, key):
-		key = create_random_key()
-	return key
+
+def create_secret_key() -> str:
+    return create_random_key(settings.secret_key_length, settings.secret_key_alphabet)
+
+
+def create_unique_url_key(db: Session) -> str:
+    key = create_url_key()
+    while crud.get_db_url_by_key(db, key):
+        key = create_url_key()
+    return key

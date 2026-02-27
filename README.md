@@ -8,7 +8,10 @@ Acortador de URLs desarrollado con **Python + FastAPI**, inspirado en el enfoque
 - Redirigir desde `/{url_key}` a la URL original
 - Consultar información sin redirigir (`/peek/{key}`)
 - Administrar una URL (info y borrado) usando `secret_key`
-
+-- ACTUALIZACION 1
+- Comprueba que esa url esta activa antes de generar el string acortador
+- Permite elegir el string acortador siempre que no se haya usado antes
+- Comprueba que el string no es ninguna palabra reservada antes de asignarlo
 ---
 
 ## 🧱 Stack
