@@ -9,7 +9,7 @@ Acortador de URLs desarrollado con **Python + FastAPI**, inspirado en el enfoque
 - Consultar información sin redirigir (`/peek/{key}`)
 - Administrar una URL (info y borrado) usando `secret_key`
 
--- ACTUALIZACION 1
+-- ACTUALIZACION 1 [H1 + H2 + H3]
 - Comprueba que esa url esta activa antes de generar el string acortador
 - Permite elegir el string acortador siempre que no se haya usado antes
 - Comprueba que el string no es ninguna palabra reservada antes de asignarlo
@@ -171,7 +171,7 @@ Esto permite administrar enlaces sin necesidad (todavía) de un sistema de usuar
 
 # 🧭 Roadmap — próximos hitos
 
-## H1 — Personalización del string generado (alfabeto/longitud)
+## H1 — Personalización del string generado (alfabeto/longitudu) [REALIZADO]
 
 * Configurar `SHORT_CODE_ALPHABET` (alfabeto permitido)
 * Configurar `SHORT_CODE_LENGTH` (longitud del código)
@@ -185,7 +185,7 @@ Esto permite administrar enlaces sin necesidad (todavía) de un sistema de usuar
 
 ---
 
-## H2 — Robustez ante colisiones y duplicados
+## H2 — Robustez ante colisiones y duplicados [REALIZADO]
 
 * Constraint UNIQUE en `url_key`
 * Reintentos acotados
@@ -193,7 +193,7 @@ Esto permite administrar enlaces sin necesidad (todavía) de un sistema de usuar
 
 ---
 
-## H3 — Alias personalizado
+## H3 — Alias personalizado [REALIZADO]
 
 * Permitir que el cliente elija `url_key` (si está libre)
 * Lista de palabras reservadas (`docs`, `admin`, etc.)
@@ -229,6 +229,19 @@ Esto permite administrar enlaces sin necesidad (todavía) de un sistema de usuar
 * Tests (pytest)
 * CI (GitHub Actions)
 * Dockerfile + despliegue
+
+---
+
+## Miggrgaciones
+
+* Migracion con Alembic
+
+---
+
+## UI funcional basica
+
+* Pagina simple con formulario de creacion (FastAPI + Jinja2 )
+* Panel basico de administracion
 
 ---
 
