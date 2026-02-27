@@ -18,4 +18,5 @@ class URL(Base):
 
     # Campos de seguridad
     expires_at = Column(DateTime, nullable=True)
+    disabled_at = Column(DateTime, nullable=True)  # <-- CAMBIO: marca de desactivación (audit mínimo)
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -1,7 +1,7 @@
 import httpx
 from urllib.parse import urlparse
 
-
+from pydantic import BaseModel
 from urllib.parse import urlsplit
 import ipaddress
 
@@ -13,10 +13,11 @@ from sqlalchemy.exc import IntegrityError
 from starlette.datastructures import URL
 
 from config import get_settings
+from database import engine, get_db, ensure_sqlite_schema  # <-- CAMBIO: import ensure_sqlite_schema
 from database import engine, get_db
 from logger import logger
 from security import rate_limit
-from url_state import is_expired
+from url_state import is_expired, get_state  # <-- CAMBIO: get_state para admin responses
 from key_validators import validate_custom_key
 
 import models, schemas, crud, keygen
@@ -32,6 +33,7 @@ app = FastAPI(
 )
 
 models.Base.metadata.create_all(bind=engine)
+ensure_sqlite_schema(engine)  # <-- CAMBIO: “auto-migración” SQLite para columnas nuevas
 
 
 def is_valid_target_url(target_url) -> bool:
@@ -82,6 +84,7 @@ def get_admin_info(db_url: models.URL) -> schemas.URLInfo:
 
     db_url.url = str(base_url.replace(path=f"/{db_url.key}"))
     db_url.admin_url = str(base_url.replace(path=str(admin_endpoint)))
+    db_url.state = get_state(db_url)  # <-- CAMBIO: añade state (active|expired|disabled) al response admin
     return db_url
 
 
@@ -158,8 +161,11 @@ def forward_to_target_url(
     if not db_url:
         raise_not_found("Not found")
 
+    if not db_url.is_active:
+        raise HTTPException(status_code=410, detail="Link disabled")  # <-- CAMBIO: 410 si desactivado
+
     if is_expired(db_url):
-        raise HTTPException(status_code=410, detail="Link expired")
+        raise HTTPException(status_code=410, detail="Link expired")  # <-- CAMBIO: 410 si caducado
 
     if not url_exists(db_url.target_url):
         raise HTTPException(status_code=502, detail="Destination unavailable")
@@ -177,23 +183,61 @@ def forward_to_target_url(
 def admin_info(secret_key: str, request: Request, db: Session = Depends(get_db)):
     rate_limit(request)
 
-    db_url = crud.get_db_url_by_secret_key(db, secret_key)
+    db_url = crud.get_db_url_by_secret_key(db, secret_key, include_inactive=True)  # <-- CAMBIO: admin ve inactivas
     if not db_url:
         raise_not_found("Secret key not found")
 
-    if is_expired(db_url):
-        raise HTTPException(status_code=410, detail="Link expired")
-
     return get_admin_info(db_url)
-
 
 @app.delete("/admin/{secret_key}", tags=["Admin"])
 def delete_url(secret_key: str, request: Request, db: Session = Depends(get_db)):
     rate_limit(request)
 
-    db_url = crud.deactivate_db_url_by_secret_key(db, secret_key=secret_key)
+    db_url = crud.deactivate_db_url_by_secret_key(db, secret_key=secret_key)  # <-- CAMBIO: desactiva + disabled_at
     if not db_url:
         raise_not_found("Secret key not found")
 
     message = f"Succesfully deleted shortened URL for '{db_url.target_url}'"
     return {"detail": message}
+
+@app.post("/admin/{secret_key}/enable", tags=["Admin"], response_model=schemas.URLInfo)
+def enable_url(secret_key: str, request: Request, db: Session = Depends(get_db)):
+    rate_limit(request)
+    db_url = crud.activate_db_url_by_secret_key(db, secret_key)  # <-- CAMBIO: reactivación
+    if not db_url:
+        raise_not_found("Secret key not found")
+    return get_admin_info(db_url)
+
+
+@app.post("/admin/{secret_key}/disable", tags=["Admin"], response_model=schemas.URLInfo)
+def disable_url(secret_key: str, request: Request, db: Session = Depends(get_db)):
+    rate_limit(request)
+    db_url = crud.deactivate_db_url_by_secret_key(db, secret_key)  # <-- CAMBIO: desactivación explícita
+    if not db_url:
+        raise_not_found("Secret key not found")
+    return get_admin_info(db_url)
+
+
+class ExpiryUpdate(BaseModel):
+    expires_in_days: int | None = None  # <-- CAMBIO: payload para set/quitar caducidad
+
+
+@app.patch(
+    "/admin/{secret_key}/expiry",
+    tags=["Admin"],
+    response_model=schemas.URLInfo,
+)
+def update_expiry(
+    secret_key: str,
+    payload: ExpiryUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    rate_limit(request)
+    if payload.expires_in_days is not None and payload.expires_in_days < 1:
+        raise_bad_request("expires_in_days must be >= 1 or null")
+
+    db_url = crud.update_expiry_by_secret_key(db, secret_key, payload.expires_in_days)  # <-- CAMBIO
+    if not db_url:
+        raise_not_found("Secret key not found")
+    return get_admin_info(db_url)

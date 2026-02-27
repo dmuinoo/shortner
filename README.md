@@ -14,6 +14,8 @@ Acortador de URLs desarrollado con **Python + FastAPI**, inspirado en el enfoque
 - Comprueba que esa url esta activa antes de generar el string acortador
 - Permite elegir el string acortador siempre que no se haya usado antes
 - Comprueba que el string no es ninguna palabra reservada antes de asignarlo
+
+-- ACTUALIZACION 2 [H4]
 ---
 
 ## 🧱 Stack
@@ -201,7 +203,7 @@ Esto permite administrar enlaces sin necesidad (todavía) de un sistema de usuar
 
 ---
 
-## H4 — Expiración y estado
+## H4 — Expiración y estado [REALIZADO]
 
 * `expires_at`
 * `is_active` / soft delete
