@@ -1,19 +1,20 @@
+````markdown
 # 🔗 Shortner — URL Shortener con FastAPI
 
-Acortador de URLs desarrollado con **Python + FastAPI**, basado en el enfoque del curso de Real Python y extendido con endpoints administrativos y de consulta.
+Acortador de URLs desarrollado con **Python + FastAPI**, inspirado en el enfoque de Real Python y extendido con endpoints de **consulta** y **administración** mediante `secret_key`.
 
-El servicio permite:
+## ✅ Qué hace
 
-- Crear URLs cortas
-- Redirigir automáticamente a la URL original
-- Consultar información de una URL
-- Administrar (ver info y eliminar) mediante `secret_key`
+- Crear URLs cortas a partir de una URL objetivo
+- Redirigir desde `/{url_key}` a la URL original
+- Consultar información sin redirigir (`/peek/{key}`)
+- Administrar una URL (info y borrado) usando `secret_key`
 
 ---
 
-## 🚀 Stack tecnológico
+## 🧱 Stack
 
-- Python 3.10+
+- Python
 - FastAPI
 - Uvicorn
 - SQLAlchemy
@@ -21,48 +22,63 @@ El servicio permite:
 
 ---
 
-## 📦 Instalación
+## 📦 Requisitos
 
-```bash
-python -m venv .venv
-source .venv/bin/activate  # En Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-````
+- Tener instalado **uv** (Astral) para gestionar dependencias y ejecución
 
 ---
 
-## ▶️ Ejecución
+## 🚀 Instalación (con `uv`)
+
+> Este proyecto se instala y ejecuta con `uv`, no con `pip` ni activando venv manualmente.
+
+1) Clona el repositorio:
 
 ```bash
-uvicorn main:app --reload
+git clone https://github.com/dmuinoo/shortner.git
+cd shortner
+````
+
+2. Instala dependencias:
+
+```bash
+uv add
 ```
 
-Documentación interactiva disponible en:
+> Si tu repo ya tiene dependencias definidas (por ejemplo en `pyproject.toml` / `uv.lock`), `uv` las resolverá y preparará el entorno automáticamente.
+
+---
+
+## ▶️ Ejecutar en local
+
+```bash
+uv run uvicorn main:app --reload
+```
+
+Documentación interactiva:
 
 * Swagger UI → [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 * OpenAPI JSON → [http://127.0.0.1:8000/openapi.json](http://127.0.0.1:8000/openapi.json)
 
 ---
 
-# 📡 Endpoints reales del proyecto
+# 📡 Endpoints (URIs reales)
 
-## 🔹 Short
+Según la documentación Swagger del proyecto:
 
-### 1️⃣ GET `/`
+## Short
 
-Read Root
+### GET `/` — Read Root
 
-Endpoint básico de comprobación de servicio.
+Endpoint básico de comprobación.
 
 ---
 
-### 2️⃣ POST `/url`
+### POST `/url` — Create Url
 
-Create URL
+Crea una URL acortada.
 
-Crea una nueva URL acortada.
-
-#### Request body (JSON)
+**Body (JSON)**
 
 ```json
 {
@@ -70,7 +86,7 @@ Crea una nueva URL acortada.
 }
 ```
 
-#### Response típica
+**Respuesta típica**
 
 ```json
 {
@@ -80,182 +96,149 @@ Crea una nueva URL acortada.
 }
 ```
 
-* `url_key` → clave pública usada para redirección.
-* `secret_key` → clave privada usada para administración.
+* `url_key`: clave pública usada para redirección
+* `secret_key`: clave privada para administración
 
 ---
 
-### 3️⃣ GET `/{url_key}`
+### GET `/{url_key}` — Forward To Target Url
 
-Forward To Target URL
-
-Redirige automáticamente a la `target_url` asociada.
+Redirige a la URL original asociada a `url_key`.
 
 Ejemplo:
 
-```
+```text
 GET /abc123
 ```
 
-→ Redirección HTTP 307 hacia la URL original.
+→ Responde con redirección HTTP (302/307) hacia `target_url`.
 
 ---
 
-## 🔹 Info
+## Info
 
-### 4️⃣ GET `/peek/{key}`
+### GET `/peek/{key}` — Peek Url
 
-Peek URL
-
-Permite consultar información pública de una URL acortada sin redirigir.
+Devuelve información de la URL acortada **sin redirigir**.
 
 Ejemplo:
 
-```
+```text
 GET /peek/abc123
 ```
 
-Devuelve metadata de la URL.
-
 ---
 
-## 🔹 Admin
+## Admin
 
-### 5️⃣ GET `/admin/{secret_key}`
+### GET `/admin/{secret_key}` — Administration Info
 
-Administration Info
-
-Devuelve información administrativa asociada a una URL usando su `secret_key`.
+Devuelve información administrativa de la URL asociada a `secret_key`.
 
 Ejemplo:
 
-```
+```text
 GET /admin/XyZ987secret
 ```
 
 ---
 
-### 6️⃣ DELETE `/admin/{secret_key}`
+### DELETE `/admin/{secret_key}` — Delete Url
 
-Delete URL
-
-Elimina una URL acortada del sistema usando su `secret_key`.
+Elimina la URL acortada asociada a `secret_key`.
 
 Ejemplo:
 
-```
+```text
 DELETE /admin/XyZ987secret
 ```
 
 ---
 
-# 🗃️ Modelo conceptual
+## 🗃️ Modelo conceptual
 
-Cada URL almacenada contiene:
+Cada URL almacenada tiene dos claves:
 
-* `target_url`
-* `url_key` (clave pública)
-* `secret_key` (clave privada administrativa)
-* Metadatos adicionales (según implementación)
+* **`url_key`** (pública): sirve para redirección
+* **`secret_key`** (privada): sirve para administración (ver/borrar)
 
-Separar `url_key` y `secret_key` permite:
-
-* Redirección pública sin autenticación
-* Administración segura sin sistema de usuarios
+Esto permite administrar enlaces sin necesidad (todavía) de un sistema de usuarios.
 
 ---
 
-# 🛠️ Configuración
+# 🧭 Roadmap — próximos hitos
 
-El proyecto puede utilizar variables de entorno para:
+## H1 — Personalización del string generado (alfabeto/longitud)
 
-* Base URL del servicio
-* Longitud del código
-* Alfabeto permitido
-* Base de datos
+* Configurar `SHORT_CODE_ALPHABET` (alfabeto permitido)
+* Configurar `SHORT_CODE_LENGTH` (longitud del código)
+* Estrategias de generación:
 
-Ejemplo `.env`:
+  * Aleatoria con control de colisiones
+  * Determinista (hash + encoding)
+  * Secuencial (ID → base62)
 
-```
-BASE_URL=http://127.0.0.1:8000
-SHORT_CODE_LENGTH=6
-```
+**Criterio de aceptación:** al cambiar alfabeto/longitud, cambian los códigos generados sin romper redirecciones existentes.
 
 ---
 
-# 🧭 Roadmap — Próximos Hitos
-
-## ✅ H1 — Personalización del string generado
-
-* Permitir configurar el alfabeto (`SHORT_CODE_ALPHABET`)
-* Permitir definir longitud (`SHORT_CODE_LENGTH`)
-* Estrategias de generación intercambiables:
-
-  * Aleatoria
-  * Determinista (hash)
-  * Secuencial (base62 de ID)
-
----
-
-## 🔁 H2 — Robustez ante colisiones
+## H2 — Robustez ante colisiones y duplicados
 
 * Constraint UNIQUE en `url_key`
-* Reintentos controlados
-* Política para URLs duplicadas
+* Reintentos acotados
+* Política para URLs repetidas (idempotencia vs múltiples códigos)
 
 ---
 
-## ✍️ H3 — Alias personalizado
+## H3 — Alias personalizado
 
-* Permitir especificar manualmente `url_key`
-* Lista de palabras reservadas
-
----
-
-## ⏳ H4 — Expiración y estado
-
-* Campo `expires_at`
-* Estado activo/inactivo
-* Soft delete
+* Permitir que el cliente elija `url_key` (si está libre)
+* Lista de palabras reservadas (`docs`, `admin`, etc.)
 
 ---
 
-## 📊 H5 — Analítica básica
+## H4 — Expiración y estado
+
+* `expires_at`
+* `is_active` / soft delete
+* Validación avanzada de URL + denylist de dominios
+
+---
+
+## H5 — Analítica
 
 * Contador de visitas
-* Timestamp último acceso
+* Último acceso
 * Endpoint de estadísticas
 
 ---
 
-## 🔐 H6 — Seguridad avanzada
+## H6 — Seguridad
 
 * Rate limiting
-* API keys
-* Multiusuario
+* API keys/JWT (si se desea)
+* Separación por usuario (multi-tenant)
 
 ---
 
-## 🧪 H7 — Calidad y despliegue
+## 🧪 Calidad
 
-* Tests con pytest
-* Dockerfile
-* CI/CD
-* Migraciones con Alembic
-
----
-
-# 📜 Licencia
-
-Añadir licencia (MIT recomendada).
+* Tests (pytest)
+* CI (GitHub Actions)
+* Dockerfile + despliegue
 
 ---
 
-# 📚 Créditos
+## 📚 Créditos
 
-Inspirado en el curso de Real Python:
-
-[https://realpython.com/build-a-python-url-shortener-with-fastapi/](https://realpython.com/build-a-python-url-shortener-with-fastapi/)
+Proyecto inspirado en el enfoque de Real Python para un URL shortener con FastAPI.
 
 ---
+
+## 📜 Licencia
+
+Pendiente de definir (MIT recomendada).
+
+```
+```
 
