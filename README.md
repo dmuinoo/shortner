@@ -1,5 +1,3 @@
-Aquí tienes el **README.md completo corregido**, alineado exactamente con los endpoints que aparecen en tu Swagger:
-
 ---
 
 ````markdown
