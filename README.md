@@ -1,4 +1,3 @@
-````markdown
 # 🔗 Shortner — URL Shortener con FastAPI
 
 Acortador de URLs desarrollado con **Python + FastAPI**, basado en el enfoque del curso de Real Python y extendido con endpoints administrativos y de consulta.
