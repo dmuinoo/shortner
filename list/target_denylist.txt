@@ -1,0 +1,21 @@
+## Este fichero puede contener:
+#	- IPs (1.2.3.4)
+#	- CIDR (1.2.3.0/24, 2001:db8::/32)
+#	- Dominios (example.com)
+#	- Wildcards (*.example.com)
+#	- FQDNs
+#	- URLs completas (se extrae el host)
+#	- Comentarios (Solo sirven para aclaraciones)
+# De bloqueados desde el acortador (Que sitios no se puede alcanzar desde la app)
+# Dominios no acortables
+porn.com
+*.malware.tld
+# IPs/redes no acortables
+# Porn / malware
+porn.example
+*.porno.tld
+bad.com
+*.bad.com
+# Bloqueo por red
+10.0.0.0/8
+192.168.0.0/16

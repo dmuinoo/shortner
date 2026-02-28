@@ -26,6 +26,8 @@ class URL(URLBase):
     expires_at: Optional[datetime] = None
     disabled_at: Optional[datetime] = None  # <-- CAMBIO: exponer marca de desactivación en responses
     created_at: Optional[datetime] = None   
+    
+    state: str 
  
     model_config = ConfigDict(from_attributes=True)
 

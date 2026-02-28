@@ -1,0 +1,12 @@
+## Este fichero puede contener:
+#	- IPs (1.2.3.4)
+#	- CIDR (1.2.3.0/24, 2001:db8::/32)
+#	- Dominios (example.com)
+#	- Wildcards (*.example.com)
+#	- FQDNs
+#	- URLs completas (se extrae el host)
+#	- Comentarios (Solo sirven para aclaraciones)
+# De bloqueados al acceso al acortador (Desde que sitios no se puede llegar a la app)
+# IPs agresoras bloqueadas
+198.51.100.66
+
