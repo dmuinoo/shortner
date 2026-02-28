@@ -1,265 +1,397 @@
-# 🔗 Shortner — URL Shortener con FastAPI
+🔗 Short – Acortador de URLs Seguro y Preparado para Producción
 
-Acortador de URLs desarrollado con **Python + FastAPI**, inspirado en el enfoque de Real Python y extendido con endpoints de **consulta** y **administración** mediante `secret_key`.
 
-## ✅ Qué hace
 
-- **Crear URLs cortas** a partir de una URL objetivo
-- **Redirigir** desde `/{url_key}` a la URL original
-- **Persistir** enlaces en una base de datos SQLite ('shortener.db').
-- Consultar información (enlaces creados) sin redirigir (`/peek/{key}`)
-- Administrar una URL (info y borrado) usando `secret_key`
 
--- ACTUALIZACION 1 [H1 + H2 + H3]
-- Comprueba que esa url esta activa antes de generar el string acortador
-- Permite elegir el string acortador siempre que no se haya usado antes
-- Comprueba que el string no es ninguna palabra reservada antes de asignarlo
 
--- ACTUALIZACION 2 [H4]
-- Se añade temporalidad a las URLs (activada, desactivada, expirada) 
 
----
 
-## 🧱 Stack
 
-- Python
-- FastAPI
-- Uvicorn
-- SQLAlchemy
-- SQLite
 
----
 
-## 📦 Requisitos
+Acortador de URLs desarrollado con FastAPI + SQLAlchemy, diseñado con foco en:
 
-- Tener instalado **uv** (Astral) para gestionar dependencias y ejecución
+🔐 Seguridad avanzada
 
----
+⚡ Eficiencia
 
-## 🚀 Instalación (con `uv`)
+🧱 Resiliencia
 
-> Este proyecto se instala y ejecuta con `uv`, no con `pip` ni activando venv manualmente.
+🏗️ Escalabilidad
 
-1) Clona el repositorio:
+🔁 Reproducibilidad
 
-```bash
-git clone https://github.com/dmuinoo/shortner.git
-cd shortner
-````
+No es un shortener básico de demostración. Está diseñado con mentalidad de producción.
 
-2. Instala dependencias:
+🚀 Características Principales
+🔹 Acortamiento de URLs
 
-```bash
-uv add
-```
+Generación automática de short_code
 
-> Si tu repo ya tiene dependencias definidas (por ejemplo en `pyproject.toml` / `uv.lock`), `uv` las resolverá y preparará el entorno automáticamente.
+Soporte para custom_key
 
----
+Prevención de colisiones (retry + constraint DB)
 
-## ▶️ Ejecutar en local
+secret_key único por URL para administración
 
-```bash
-uv run uvicorn main:app --reload
-```
+Contador de clics
 
-Documentación interactiva:
+🔹 Administración por Capability
 
-* Swagger UI → [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-* OpenAPI JSON → [http://127.0.0.1:8000/openapi.json](http://127.0.0.1:8000/openapi.json)
+Cada URL genera un secret_key único.
 
----
+Quien posee ese secret_key puede administrar la URL.
 
-# 📡 Endpoints (URIs reales)
+Endpoints administrativos
+GET     /admin/{secret_key}
+GET     /admin/{secret_key}/validate
+POST    /admin/{secret_key}/enable
+POST    /admin/{secret_key}/disable
+PATCH   /admin/{secret_key}/expiry
+DELETE  /admin/{secret_key}
 
-Según la documentación Swagger del proyecto:
+Modelo: Capability-based security
 
-## Short
+No requiere autenticación.
 
-### GET `/` — Read Root
+🔄 Ciclo de Vida de la URL
 
-Endpoint básico de comprobación.
+Estados posibles:
 
----
+active
 
-### POST `/url` — Create Url
+disabled
 
-Crea una URL acortada.
+expired
 
-**Body (JSON)**
-
-```json
+Caducidad configurable
+PATCH /admin/{secret_key}/expiry
 {
-  "target_url": "https://example.com/muy/larga/url"
+  "expires_in_days": 30
 }
-```
 
-**Respuesta típica**
+Comportamiento:
 
-```json
+Disabled → HTTP 410
+
+Expired → HTTP 410
+
+Active → Redirect 307
+
+🛡️ Seguridad
+1️⃣ Validación fuerte de target_url
+
+Solo http y https
+
+Host obligatorio
+
+Sin credenciales en URL
+
+Longitud máxima configurable
+
+Rechazo de espacios
+
+Bloqueo de:
+
+localhost
+
+loopback
+
+IPs privadas
+
+IPs reservadas
+
+Normalización punycode (IDNA)
+
+Validación DNS opcional
+
+2️⃣ Protección avanzada contra SSRF
+
+Mitiga:
+
+SSRF clásico
+
+DNS rebinding
+
+Dominios públicos que resuelven a red interna
+
+Bypass mediante CNAME
+
+IP literal privada
+
+Mecanismo
+
+Si resolve_dns=True:
+
+Se resuelve el dominio.
+
+Se validan todas las IPs devueltas.
+
+Se bloquea si alguna IP es privada o reservada.
+
+3️⃣ No actúa como proxy
+
+El sistema NO realiza HEAD/GET al destino.
+
+La redirección es puramente:
+
+Location: <target_url>
+
+Ventajas:
+
+No puede ser abusado como proxy
+
+No ejecuta SSRF activo
+
+Latencia mínima
+
+No depende del servidor destino
+
+4️⃣ Motor de Políticas (Allowlist / Denylist)
+
+Listas independientes:
+
+app_allowlist.txt
+
+app_denylist.txt
+
+target_allowlist.txt
+
+target_denylist.txt
+
+Soportan:
+
+IP
+
+CIDR
+
+Dominio
+
+Wildcard (*.example.com)
+
+FQDN
+
+URL completa
+
+Modo configurable:
+
+default_app_policy = "allow" | "deny"
+default_target_policy = "allow" | "deny"
+⚡ Eficiencia
+Caché DNS inteligente
+
+Modos disponibles:
+
+TTL fijo
+dns_cache_mode = "fixed"
+dns_cache_ttl_seconds = 300
+TTL real DNS
+dns_cache_mode = "dns"
+
+Incluye clamp mínimo/máximo.
+
+Soporte Redis (opcional)
+
+Permite:
+
+Caché compartida
+
+Escalabilidad horizontal
+
+Preparación para rate limiting distribuido
+
+Ruta de redirección optimizada
+
+Flujo:
+
+Lookup DB
+
+Validación de estado
+
+Validación DNS cacheada
+
+RedirectResponse
+
+Sin llamadas externas.
+
+🧱 Resiliencia
+Prevención de colisiones
+
+Constraint único
+
+Retry hasta 20 intentos
+
+Evolución ligera de esquema SQLite
+ensure_sqlite_schema(engine)
+Degradación controlada
+
+Si Redis falla:
+
+Se usa caché local
+
+Servicio sigue operativo
+
+📊 Observabilidad
+
+Logging estructurado JSON:
+
 {
-  "target_url": "https://example.com/muy/larga/url",
-  "url_key": "abc123",
-  "secret_key": "XyZ987secret"
+  "event": "redirect",
+  "ip": "...",
+  "ua": "...",
+  "key": "abc123"
 }
-```
 
-* `url_key`: clave pública usada para redirección
-* `secret_key`: clave privada para administración
+Compatible con:
 
----
+ELK
 
-### GET `/{url_key}` — Forward To Target Url
+Loki
 
-Redirige a la URL original asociada a `url_key`.
+SIEM
 
-Ejemplo:
+🌍 Geolocalización (Preparado)
 
-```text
-GET /abc123
-```
+Infraestructura implementada:
 
-→ Responde con redirección HTTP (302/307) hacia `target_url`.
+Resolución IP → country_code
 
----
+Caché GeoIP con TTL
 
-## Info
+Feature toggle disponible
 
-### GET `/peek/{key}` — Peek Url
+Estado actual:
 
-Devuelve información de la URL acortada **sin redirigir**.
+🚧 Implementado a nivel de infraestructura
+❌ No activado aún como política en producción
 
-Ejemplo:
+🏗️ Arquitectura
+Cliente
+   ↓
+Load Balancer (Nginx / HAProxy)
+   ↓
+FastAPI Instance 1
+FastAPI Instance 2
+   ↓
+Redis (opcional)
+   ↓
+Base de datos
 
-```text
-GET /peek/abc123
-```
+Diseñado para alta disponibilidad.
 
----
+🔁 Reproducibilidad
 
-## Admin
+Se usa:
 
-### GET `/admin/{secret_key}` — Administration Info
+pyproject.toml
 
-Devuelve información administrativa de la URL asociada a `secret_key`.
+uv.lock
 
-Ejemplo:
+Generar lock:
 
-```text
-GET /admin/XyZ987secret
-```
+uv lock
 
----
+Instalar exactamente lo bloqueado:
 
-### DELETE `/admin/{secret_key}` — Delete Url
+uv sync --frozen
+📌 Estado Actual
 
-Elimina la URL acortada asociada a `secret_key`.
+Implementado:
 
-Ejemplo:
+Acortamiento
 
-```text
-DELETE /admin/XyZ987secret
-```
+Custom keys
 
----
+Caducidad
 
-## 🗃️ Modelo conceptual
+Enable / Disable
 
-Cada URL almacenada tiene dos claves:
+Administración por capability
 
-* **`url_key`** (pública): sirve para redirección
-* **`secret_key`** (privada): sirve para administración (ver/borrar)
+Protección SSRF
 
-Esto permite administrar enlaces sin necesidad (todavía) de un sistema de usuarios.
+Motor de políticas
 
----
+Caché DNS
 
-# 🧭 Roadmap — próximos hitos
+Logging estructurado
 
-## H1 — Personalización del string generado (alfabeto/longitudu) [REALIZADO]
+Preparado:
 
-* Configurar `SHORT_CODE_ALPHABET` (alfabeto permitido)
-* Configurar `SHORT_CODE_LENGTH` (longitud del código)
-* Estrategias de generación:
+GeoIP enforcement por país
 
-  * Aleatoria con control de colisiones
-  * Determinista (hash + encoding)
-  * Secuencial (ID → base62)
+Rate limiting distribuido
 
-**Criterio de aceptación:** al cambiar alfabeto/longitud, cambian los códigos generados sin romper redirecciones existentes.
+Multi-tenant
 
----
+🔮 Roadmap
 
-## H2 — Robustez ante colisiones y duplicados [REALIZADO]
+JWT / API Keys
 
-* Constraint UNIQUE en `url_key`
-* Reintentos acotados
-* Política para URLs repetidas (idempotencia vs múltiples códigos)
+Multi-tenant real
 
----
+Estadísticas avanzadas
 
-## H3 — Alias personalizado [REALIZADO]
+Panel web
 
-* Permitir que el cliente elija `url_key` (si está libre)
-* Lista de palabras reservadas (`docs`, `admin`, etc.)
+Alembic
 
----
+Alta disponibilidad activa-activa
 
-## H4 — Expiración y estado [REALIZADO]
+📐 DIAGRAMA DE SEGURIDAD
+[Input URL]
+    ↓
+Validación sintáctica
+    ↓
+Normalización punycode
+    ↓
+Policy Engine (allow/deny)
+    ↓
+DNS Resolve (opcional)
+    ↓
+Validación IP resultante
+    ↓
+Persistencia
+📘 Whitepaper Técnico (Resumen)
 
-* `expires_at`
-* `is_active` / soft delete
-* Validación avanzada de URL + denylist de dominios
+Este sistema aplica principios de:
 
----
+Defense in Depth
 
-## H5 — Analítica
+Capability-based access control
 
-* Contador de visitas
-* Último acceso
-* Endpoint de estadísticas
+Fail-safe defaults
 
----
+Secure by design
 
-## H6 — Seguridad
+Stateless architecture
 
-* Rate limiting
-* API keys/JWT (si se desea)
-* Separación por usuario (multi-tenant)
+Horizontal scalability readiness
 
----
+La mitigación SSRF incluye validación a nivel:
 
-## 🧪 Calidad
+Sintáctico
 
-* Tests (pytest)
-* CI (GitHub Actions)
-* Dockerfile + despliegue
+Dominio
 
----
+IP literal
 
-## Miggrgaciones
+Resolución DNS
 
-* Migracion con Alembic
+Política configurable
 
----
+Caché optimizada
 
-## UI funcional basica
+Si quieres ahora puedo generarte:
 
-* Pagina simple con formulario de creacion (FastAPI + Jinja2 )
-* Panel basico de administracion
+🧪 Plan de testing profesional
 
----
+🧱 Documento técnico de arquitectura formal
 
-## 📚 Créditos
+📊 Documento de análisis de riesgos
 
-Proyecto inspirado en el enfoque de Real Python para un URL shortener con FastAPI.
+🧾 Licencia MIT preparada
 
----
+🧑‍💻 Contributing.md
 
-## 📜 Licencia
-
-Pendiente de definir (MIT recomendada).
-
-```
-```
-
+Dime qué quieres añadir al repo para dejarlo nivel senior.
