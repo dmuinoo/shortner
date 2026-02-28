@@ -1,7 +1,6 @@
 from fastapi import HTTPException
-from config import get_settings
+from config import settings
 
-settings = get_settings()
 
 RESERVED = {
     "docs",

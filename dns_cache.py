@@ -10,9 +10,8 @@ from typing import Optional, Tuple, List
 
 from fastapi import HTTPException
 
-from config import get_settings
+from config import settings
 
-settings = get_settings()
 
 try:
     import dns.resolver  # type: ignore

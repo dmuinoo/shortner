@@ -9,9 +9,7 @@ from urllib.parse import urlsplit
 
 import ipaddress
 
-from config import get_settings
-
-settings = get_settings()
+from config import settings
 
 
 def _strip_comment(line: str) -> str:

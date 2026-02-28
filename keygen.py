@@ -1,10 +1,9 @@
 import secrets
 from sqlalchemy.orm import Session
 
-from config import get_settings
+from config import settings
 import crud
 
-settings = get_settings()
 
 
 def create_random_key(length: int, alphabet: str) -> str:

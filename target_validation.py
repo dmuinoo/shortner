@@ -8,11 +8,10 @@ from typing import Optional
 
 from fastapi import HTTPException
 
-from config import get_settings
+from config import settings
 from policy_lists import decide_by_policy
 from dns_cache import get_cached, resolve_host, set_cached  # <-- CAMBIO
 
-settings = get_settings()
 
 
 def _normalize_host(host: str) -> str:
