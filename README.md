@@ -1,271 +1,298 @@
-🔗 Short – Acortador de URLs Seguro y Preparado para Producción
+# 🔗 Short – Acortador de URLs Seguro y Preparado para Producción
 
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-Production-green)
+![Security](https://img.shields.io/badge/Security-SSRF%20Protected-critical)
+![Status](https://img.shields.io/badge/Status-Active-success)
+![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
+Acortador de URLs desarrollado con **FastAPI + SQLAlchemy**, esta basado en el curso **"Shortener URL" de Real Python**, pero este se ha diseñado con foco en:
 
+- 🔐 Seguridad avanzada  
+- ⚡ Eficiencia  
+- 🧱 Resiliencia  
+- 🏗️ Escalabilidad  
+- 🔁 Reproducibilidad  
 
+Este proyecto no es un simple shortener de demostración. Está diseñado con mentalidad de producción.
 
+---
 
+# 🚀 Características Principales
 
+## 🔹 Acortamiento de URLs
 
+- Generación automática de `short_code`
+- Soporte para `custom_key`
+- Prevención de colisiones (constraint en base de datos + retry)
+- `secret_key` único por URL para administración
+- Contador de clics
 
+---
 
-Acortador de URLs desarrollado con FastAPI + SQLAlchemy, diseñado con foco en:
+## 🔹 Administración por Capability (sin autenticación)
 
-🔐 Seguridad avanzada
+Cada URL genera un `secret_key` único.
 
-⚡ Eficiencia
+Quien posea ese `secret_key` puede administrar la URL.
 
-🧱 Resiliencia
+### Endpoints administrativos
 
-🏗️ Escalabilidad
-
-🔁 Reproducibilidad
-
-No es un shortener básico de demostración. Está diseñado con mentalidad de producción.
-
-🚀 Características Principales
-🔹 Acortamiento de URLs
-
-Generación automática de short_code
-
-Soporte para custom_key
-
-Prevención de colisiones (retry + constraint DB)
-
-secret_key único por URL para administración
-
-Contador de clics
-
-🔹 Administración por Capability
-
-Cada URL genera un secret_key único.
-
-Quien posee ese secret_key puede administrar la URL.
-
-Endpoints administrativos
+```
 GET     /admin/{secret_key}
 GET     /admin/{secret_key}/validate
 POST    /admin/{secret_key}/enable
 POST    /admin/{secret_key}/disable
 PATCH   /admin/{secret_key}/expiry
 DELETE  /admin/{secret_key}
+```
 
-Modelo: Capability-based security
+Modelo utilizado: **Capability-based security**.
 
-No requiere autenticación.
+---
 
-🔄 Ciclo de Vida de la URL
+# 🔄 Ciclo de Vida de la URL
 
 Estados posibles:
 
-active
+- `active`
+- `disabled`
+- `expired`
 
-disabled
+### Caducidad configurable
 
-expired
-
-Caducidad configurable
+```json
 PATCH /admin/{secret_key}/expiry
 {
   "expires_in_days": 30
 }
+```
 
 Comportamiento:
 
-Disabled → HTTP 410
+- Disabled → HTTP 410
+- Expired → HTTP 410
+- Active → Redirect 307
 
-Expired → HTTP 410
+---
 
-Active → Redirect 307
+# 🛡️ Seguridad
 
-🛡️ Seguridad
-1️⃣ Validación fuerte de target_url
+La seguridad es un pilar fundamental del sistema.
 
-Solo http y https
+---
 
-Host obligatorio
+## 1️⃣ Validación fuerte de `target_url`
 
-Sin credenciales en URL
+Se valida tanto al crear la URL como (opcionalmente) antes de redirigir:
 
-Longitud máxima configurable
+- Solo `http` y `https`
+- Host obligatorio
+- Sin credenciales (`user:pass@host`)
+- Longitud máxima configurable
+- Rechazo de espacios
+- Bloqueo de:
+  - `localhost`
+  - `127.0.0.1`
+  - `::1`
+  - IPs privadas y reservadas
+- Normalización punycode (IDNA)
+- Resolución DNS opcional
 
-Rechazo de espacios
+---
 
-Bloqueo de:
+## 2️⃣ Protección contra SSRF
 
-localhost
+El sistema mitiga:
 
-loopback
+- SSRF clásico
+- DNS rebinding
+- Dominios públicos que resuelven a redes internas
+- Bypass mediante CNAME
+- Uso directo de IP privada
 
-IPs privadas
+### Funcionamiento
 
-IPs reservadas
+Si `resolve_dns=True`:
 
-Normalización punycode (IDNA)
+1. Se resuelve el dominio.
+2. Se validan todas las IPs resultantes.
+3. Si alguna IP pertenece a un rango privado/reservado → se bloquea.
 
-Validación DNS opcional
+---
 
-2️⃣ Protección avanzada contra SSRF
+## 3️⃣ Noaactua como proxy
 
-Mitiga:
 
-SSRF clásico
+El sistema **NO realiza HEAD/GET al destino**.
 
-DNS rebinding
+La redirección se realiza únicamente mediante:
 
-Dominios públicos que resuelven a red interna
-
-Bypass mediante CNAME
-
-IP literal privada
-
-Mecanismo
-
-Si resolve_dns=True:
-
-Se resuelve el dominio.
-
-Se validan todas las IPs devueltas.
-
-Se bloquea si alguna IP es privada o reservada.
-
-3️⃣ No actúa como proxy
-
-El sistema NO realiza HEAD/GET al destino.
-
-La redirección es puramente:
-
+```
 Location: <target_url>
+```
 
 Ventajas:
 
-No puede ser abusado como proxy
+- No puede ser abusado como proxy
+- No ejecuta SSRF activo
+- Latencia mínima
+- No depende del estado del servidor destino
 
-No ejecuta SSRF activo
+---
 
-Latencia mínima
-
-No depende del servidor destino
-
-4️⃣ Motor de Políticas (Allowlist / Denylist)
+## 4️⃣ Motor de Políticas (Allowlist / Denylist)
 
 Listas independientes:
 
-app_allowlist.txt
+- `app_allowlist.txt`
+- `app_denylist.txt`
+- `target_allowlist.txt`
+- `target_denylist.txt`
 
-app_denylist.txt
+Formatos soportados:
 
-target_allowlist.txt
+- IP
+- CIDR
+- Dominio
+- FQDN
+- Wildcards (`*.example.com`)
+- URL completa (se extrae el host)
 
-target_denylist.txt
+### Política configurable
 
-Soportan:
+```python
+default_app_policy = "allow"  # o "deny"
+default_target_policy = "allow"  # o "deny"
+```
 
-IP
+Permite cambiar de “permitir por defecto” a “bloquear por defecto” sin modificar el código.
 
-CIDR
+---
 
-Dominio
+# ⚡ Eficiencia
 
-Wildcard (*.example.com)
-
-FQDN
-
-URL completa
-
-Modo configurable:
-
-default_app_policy = "allow" | "deny"
-default_target_policy = "allow" | "deny"
-⚡ Eficiencia
-Caché DNS inteligente
+## 🔹 Caché DNS inteligente
 
 Modos disponibles:
 
-TTL fijo
+### TTL fijo
+
+```python
 dns_cache_mode = "fixed"
 dns_cache_ttl_seconds = 300
-TTL real DNS
+```
+
+### TTL real del DNS
+
+```python
 dns_cache_mode = "dns"
+```
 
-Incluye clamp mínimo/máximo.
+- Usa el TTL real del registro DNS
+- Aplica límites mínimo y máximo
+- Reduce re-resoluciones innecesarias
+- Minimiza latencia en redirecciones
 
-Soporte Redis (opcional)
+---
+
+## 🔹 Soporte Redis (opcional)
 
 Permite:
 
-Caché compartida
+- Caché compartida entre múltiples instancias
+- Preparación para rate limiting distribuido
+- Escalabilidad horizontal
 
-Escalabilidad horizontal
+Si Redis no está disponible, el sistema degrada a caché en memoria.
 
-Preparación para rate limiting distribuido
+---
 
-Ruta de redirección optimizada
+## 🔹 Ruta de redirección optimizada
 
 Flujo:
 
-Lookup DB
+1. Consulta en base de datos
+2. Validación de estado
+3. (Opcional) validación DNS cacheada
+4. RedirectResponse
 
-Validación de estado
+No se realizan llamadas HTTP externas.
 
-Validación DNS cacheada
+---
 
-RedirectResponse
+# 🧱 Resiliencia
 
-Sin llamadas externas.
+## 🔹 Prevención de colisiones
 
-🧱 Resiliencia
-Prevención de colisiones
+- Constraint único en base de datos
+- Reintento automático hasta 20 veces
 
-Constraint único
+---
 
-Retry hasta 20 intentos
+## 🔹 Evolución ligera de esquema (SQLite)
 
-Evolución ligera de esquema SQLite
+```python
 ensure_sqlite_schema(engine)
-Degradación controlada
+```
+
+Permite añadir nuevas columnas sin romper instancias existentes.
+
+---
+
+## 🔹 Degradación controlada
 
 Si Redis falla:
 
-Se usa caché local
+- Se usa caché local
+- El servicio continúa operativo
 
-Servicio sigue operativo
+---
 
-📊 Observabilidad
+# 📊 Observabilidad
 
-Logging estructurado JSON:
+Logging estructurado en JSON:
 
+```json
 {
   "event": "redirect",
   "ip": "...",
   "ua": "...",
   "key": "abc123"
 }
+```
 
 Compatible con:
 
-ELK
+- ELK
+- Loki
+- SIEM
+- Sistemas de logging centralizado
 
-Loki
+---
 
-SIEM
+# 🌍 Geolocalización (Preparado)
 
-🌍 Geolocalización (Preparado)
+Infraestructura implementada para integración con **MaxMind GeoLite2 Country**.
 
-Infraestructura implementada:
+Incluye:
 
-Resolución IP → country_code
-
-Caché GeoIP con TTL
-
-Feature toggle disponible
+- Resolución IP → `country_code`
+- Caché GeoIP con TTL configurable
+- Feature toggle disponible
 
 Estado actual:
 
-🚧 Implementado a nivel de infraestructura
-❌ No activado aún como política en producción
+- Infraestructura implementada  
+- No activado aún como política en producción  
 
-🏗️ Arquitectura
+El archivo `.mmdb` se provisiona externamente y no se incluye en el repositorio.
+
+---
+
+# 🏗️ Arquitectura
+
+```
 Cliente
    ↓
 Load Balancer (Nginx / HAProxy)
@@ -276,122 +303,68 @@ FastAPI Instance 2
 Redis (opcional)
    ↓
 Base de datos
+```
 
 Diseñado para alta disponibilidad.
 
-🔁 Reproducibilidad
+---
 
-Se usa:
+# 🔁 Reproducibilidad
 
-pyproject.toml
+Se utiliza:
 
-uv.lock
+- `pyproject.toml`
+- `uv.lock`
 
-Generar lock:
+Generar lockfile:
 
+```
 uv lock
+```
 
-Instalar exactamente lo bloqueado:
+Instalar exactamente las versiones bloqueadas:
 
+```
 uv sync --frozen
-📌 Estado Actual
+```
+
+Garantiza reproducibilidad del entorno a largo plazo.
+
+---
+
+# 📌 Estado Actual
 
 Implementado:
 
-Acortamiento
-
-Custom keys
-
-Caducidad
-
-Enable / Disable
-
-Administración por capability
-
-Protección SSRF
-
-Motor de políticas
-
-Caché DNS
-
-Logging estructurado
+- Acortamiento de URLs
+- Custom keys
+- Caducidad configurable
+- Activación / desactivación
+- Administración por capability
+- Protección SSRF
+- Motor Allowlist / Denylist
+- Caché DNS
+- Logging estructurado
 
 Preparado:
 
-GeoIP enforcement por país
+- Políticas por país (GeoIP enforcement)
+- Rate limiting distribuido
+- Multi-tenant
 
-Rate limiting distribuido
+---
 
-Multi-tenant
+# 🔮 Roadmap
 
-🔮 Roadmap
+- JWT / API Keys
+- Multi-tenant real
+- Endpoint avanzado de estadísticas
+- Panel web
+- Migraciones con Alembic
+- Alta disponibilidad activa-activa
 
-JWT / API Keys
+---
 
-Multi-tenant real
+# 📄 Licencia
 
-Estadísticas avanzadas
-
-Panel web
-
-Alembic
-
-Alta disponibilidad activa-activa
-
-📐 DIAGRAMA DE SEGURIDAD
-[Input URL]
-    ↓
-Validación sintáctica
-    ↓
-Normalización punycode
-    ↓
-Policy Engine (allow/deny)
-    ↓
-DNS Resolve (opcional)
-    ↓
-Validación IP resultante
-    ↓
-Persistencia
-📘 Whitepaper Técnico (Resumen)
-
-Este sistema aplica principios de:
-
-Defense in Depth
-
-Capability-based access control
-
-Fail-safe defaults
-
-Secure by design
-
-Stateless architecture
-
-Horizontal scalability readiness
-
-La mitigación SSRF incluye validación a nivel:
-
-Sintáctico
-
-Dominio
-
-IP literal
-
-Resolución DNS
-
-Política configurable
-
-Caché optimizada
-
-Si quieres ahora puedo generarte:
-
-🧪 Plan de testing profesional
-
-🧱 Documento técnico de arquitectura formal
-
-📊 Documento de análisis de riesgos
-
-🧾 Licencia MIT preparada
-
-🧑‍💻 Contributing.md
-
-Dime qué quieres añadir al repo para dejarlo nivel senior.
+MIT License
